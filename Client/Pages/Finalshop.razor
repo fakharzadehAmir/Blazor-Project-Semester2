@@ -1,0 +1,192 @@
+@page "/finalbuy"
+@using P8.Shared
+@using P8.Client
+@inject HttpClient Client
+<button class="buttond button1d" onclick="document.getElementById('id03').style.display='block'" style="width:auto;">Delete My Account</button>
+<table class="table tablebuy">
+    <thead>
+        <th>Number</th>
+        <th>Total Price</th>
+        <th>Login</th>
+        <th>Sign Up</th>
+    </thead>
+    <tbody>
+        <tr>
+            <td style=@style1>x @FinalBuy.Buy</td>
+            <td style=@style1>@FinalBuy.TotalPrice$</td>
+            <td style=@style1><button class="button2 button1" onclick="document.getElementById('id01').style.display='block'" style="width:auto;">Login</button></td>
+            <td style=@style1><button class="button2 button1" onclick="document.getElementById('id02').style.display='block'" style="width:auto;">SignUp</button></td>
+        </tr>
+    </tbody>
+</table>
+@if(FinalBuy.shoppingList != null)
+    {
+        <table class="table">
+            <thead>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Image</th>
+                <th>Number</th>
+                <th>Delete Instrument</th>
+            </thead>
+            <tbody>
+            @foreach (var ins in FinalBuy.shoppingList.OrderByDescending(inst => inst.Chosen))
+            {
+                <tr>
+                    <td style=@style>@ins.Name</td>
+                    <td style=@style>@ins.Price$</td>
+                    <td style=@style><img src=@ins.ImgAddress width="100" height="100"></td>
+                    <td style=@style>x @ins.Chosen</td>
+                    <td style=@style><button class="buttond button1d" @onclick="()=>DeletefromList(ins)">Delete</button></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+<div id="id01" class="modal">
+    <span onclick="document.getElementById('id01').style.display='none'" class="close" title="Close Modal">&times;</span>
+
+    <div class="modal-content animate">
+        <div class="container">
+            <h1>Login</h1>
+            <p>Please fill in this form to login.</p>
+            <p style="@color">@messageForAccount</p>
+            <hr>
+            <EditForm Model="@CheckAllUsers">
+                <label for="uname"><b>Username</b></label>
+                <InputText type="text" placeholder="Enter Username" name="uname" @bind-Value ="CheckAllUsers.Username" required />
+                <label for="psw"><b>Password</b></label>
+                <InputText type="password" placeholder="Enter Password" name="psw" @bind-Value ="CheckAllUsers.Password" required />
+                <button type="submit" @onclick="() => Login()">Login</button>
+                <button type="button" onclick="document.getElementById('id01').style.display='none'" class="cancelbtn" style="width: 100%;">Cancel</button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+<div id="id02" class="modal">
+    <span onclick="document.getElementById('id02').style.display='none'" class="close" title="Close Modal">&times;</span>
+    <div class="modal-content animate">
+        <div class="container">
+            <h1>Sign Up</h1>
+            <p>Please fill in this form to create an account.</p>
+            <p style="@color">@messageForAccount</p>
+            <hr>
+            <EditForm Model="@newUser">
+                <label for="uname"><b>Username</b></label>
+                <InputText type="text" placeholder="Enter Username" name="uname"  @bind-Value ="newUser.Username" required />
+                <label for="email"><b>Email</b></label>
+                <InputText type="text" placeholder="Enter Email" name="email" @bind-Value ="newUser.Email" required />
+                <label for="psw"><b>Password</b></label>
+                <InputText type="password" placeholder="Enter Password" name="psw" @bind-Value ="newUser.Password" required />
+                <div class="clearfix">
+                    <button type="button" onclick="document.getElementById('id02').style.display='none'" class="cancelbtn">Cancel</button>
+                    <button type="submit" class="signupbtn" @onclick="() => SignUp()">Sign Up</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+<div id="id03" class="modal">
+    <span onclick="document.getElementById('id03').style.display='none'" class="close" title="Close Modal">&times;</span>
+    <div class="modal-content animate">
+        <div class="container">
+            <h1>Delete Account</h1>
+            <p>Please fill in this form to delete your account.</p>
+            <p style="@color">@messageForAccount1</p>
+            <hr>
+            <EditForm Model="@DeleteUser">
+                <label for="uname"><b>Username</b></label>
+                <InputText type="text" placeholder="Enter Username" name="uname"  @bind-Value ="DeleteUser.Username" required/>
+                <label for="email"><b>Email</b></label>
+                <InputText type="text" placeholder="Enter Email" name="email"  @bind-Value ="DeleteUser.Email" required/>
+                <label for="psw"><b>Password</b></label>
+                <InputText type="password" placeholder="Enter Password" name="psw"  @bind-Value ="DeleteUser.Password" required/>
+                <div class="clearfix">
+                    <button type="button" onclick="document.getElementById('id03').style.display='none'" class="cancelbtn">Cancel</button>
+                    <button type="submit" class="signupbtn" @onclick="() => Delete()">Delete</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    List<User> AllUsers { get; set; }
+    User CheckAllUsers = new User();
+    User newUser  = new User();
+    User DeleteUser  = new User();
+    public string messageForAccount = "";
+    public string messageForAccount1 = "";
+    public string color = "";
+    public string style = "position:relative; top:3px; vertical-align:middle";
+    public string style1 = "position:relative; top:1px; vertical-align:middle";
+    public void DeletefromList(Instrument ins)
+    {
+        if(ins.Chosen == 1)
+            FinalBuy.shoppingList.Remove(ins);
+        else
+            ins.Chosen--;
+        FinalBuy.TotalPrice -= ins.Price;
+        FinalBuy.Buy--;
+    }
+    public async Task SignUp()
+    {
+        await checkUsers();
+        foreach(var i in AllUsers)
+            if(i.Email == newUser.Email && newUser.Password != null && newUser.Username != null)
+            {
+                color = "color: red;";
+                messageForAccount = $"* There is an existing account associated with this email address.";
+                return;
+            }
+            color = "color: green;";
+        messageForAccount = $"* Account is created successfully!! :)";
+        await Client.PostAsJsonAsync<User>(@"https://d99521487.herokuapp.com//api/User/addNewUserToDb",newUser);
+        StateHasChanged();
+    }
+    public async Task Login()
+    {
+        await checkUsers();
+        foreach(var user in AllUsers)
+            if(user.Equals(CheckAllUsers))
+            {
+                messageForAccount = $"* Thanks ;) \nWe'll send your pusrchases in 5 to 15 days!!";
+                color = "color: green;";
+                foreach(var purchase in FinalBuy.shoppingList)
+                {
+                    purchase.LeftInStock -= purchase.Chosen;
+                    await Client.PutAsJsonAsync<Instrument>(@"https://d99521487.herokuapp.com/api/Instrument/updateInstrumentInDB",purchase);
+                }
+                FinalBuy.Buy = 0;
+                FinalBuy.TotalPrice = 0;
+                FinalBuy.shoppingList = null;
+                StateHasChanged();
+                return;
+            }
+            color = "color: red;";
+            messageForAccount = $"* There's no account associated with this username and password";
+        StateHasChanged();
+    }
+    public async Task Delete()
+    {
+        string mainPath = @"https://d99521487.herokuapp.com/api/User/removeUserFromDB?email=";
+        await checkUsers();
+        foreach(var user in AllUsers)
+            if(user.Equals(DeleteUser) && user.Email == DeleteUser.Email)
+            {
+                color = "color: green;";
+                messageForAccount1 = "* User account successfully deleted !!";
+                string joinUser = DeleteUser.Email.Replace("@","%40");
+                mainPath += joinUser;
+                await Client.DeleteAsync(mainPath);
+                StateHasChanged();
+                return;
+            }
+        color = "color: red;";
+        messageForAccount1 = "* Cannot find this account !! :(";
+        StateHasChanged();
+    }
+    public async Task checkUsers() =>
+        AllUsers = await Client.GetFromJsonAsync<List<User>>(@"https://d99521487.herokuapp.com/api/User/GetAllUserFromDb");
+}

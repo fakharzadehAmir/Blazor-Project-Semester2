@@ -1,0 +1,93 @@
+@page "/"
+@using P8.Shared
+@using P8.Client
+@inject HttpClient Client
+<table class="table tablebuy">
+    <thead>
+        <th>Number</th>
+        <th>Total Price</th>
+        <th>Buy!</th>
+        <th>Reset!</th>
+    </thead>
+    <tbody>
+        <tr>
+            <td style=@style1>x @FinalBuy.Buy</td>
+            <td style=@style1>@FinalBuy.TotalPrice$</td>
+            <td style=@style1><a class="button2 button1" href= "/finalbuy">Buy!!</a></td>
+            <td style=@style1><button class="button2d button1d" @onclick = "()=>Reset()">Reset!!</button></td>
+        </tr>
+    </tbody>
+</table>
+    @if(Instruments != null)
+    {
+        <table class="table">
+            <thead>
+                <th></th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Image</th>
+                <th>Left in stock</th>
+                <th>Number</th>
+                <th>Add to Cart</th>
+                <th>Remove Instrumnet</th>
+            </thead>
+            <tbody>
+            @foreach (var ins in Instruments)
+            {
+                <tr>
+                    <td style=@style>@ins.Id</td>
+                    <td style=@style>@ins.Name</td>
+                    <td style=@style>@ins.Price$</td>
+                    <td style=@style><img src=@ins.ImgAddress width="100" height="100"></td>
+                    <td style=@style>@ins.LeftInStock</td>
+                    <td style=@style>x @ins.Chosen</td>
+                    <td style=@style><button class="button3 button1" @onclick="(() => BuyMyInstrument(ins))">Add to List</button></td>
+                    <td style=@style><button class="button3 button1d" @onclick="(() => removeInstrument(ins))">Remove</button></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+    }
+
+@code
+{
+    List<Instrument> Instruments { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        Instruments = await Client.GetFromJsonAsync<List<Instrument>>(@"https://d99521487.herokuapp.com/api/Instrument/GetAllInstrumentFromDb");
+        StateHasChanged();
+    }
+    public string style = "position:relative; top:3px; vertical-align:middle";
+    public string style1 = "position:relative; top:1px; vertical-align:middle";
+    public void BuyMyInstrument(Instrument myins)
+    {
+        if(myins.Chosen >= myins.LeftInStock)
+            return;
+        FinalBuy.Buy++;
+        myins.Chosen++;
+        if(!(FinalBuy.shoppingList.Contains(myins)))
+            FinalBuy.shoppingList.Add(myins);
+        FinalBuy.TotalPrice += myins.Price;
+    }
+    public void Reset()
+    {
+        FinalBuy.Buy = 0;
+        FinalBuy.TotalPrice = 0;
+        foreach (var i in Instruments)
+            FinalBuy.shoppingList.Remove(i);
+        foreach(var i in Instruments)
+            i.Chosen = 0;
+    }
+    public void removeInstrument(Instrument myins)
+    {
+        if(myins.Chosen <= 0)
+        {
+            FinalBuy.shoppingList.Remove(myins);
+            return;
+        }
+        FinalBuy.Buy--;
+        myins.Chosen--;
+        FinalBuy.TotalPrice -= myins.Price;
+    }
+}
